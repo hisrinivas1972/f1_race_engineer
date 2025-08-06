@@ -1,6 +1,6 @@
 import streamlit as st
 from chat import setup_gemini, ask_strategy
-from utils import format_strategy_context
+from utils import format_strategy_context, simulate_lap_times, plot_stints, simulate_undercut
 
 st.set_page_config(page_title="Mach - F1 Race Engineer", layout="wide")
 
@@ -10,7 +10,7 @@ eleven_api_key = st.sidebar.text_input("ElevenLabs API Key", type="password")
 voice_id = st.sidebar.text_input("ElevenLabs Voice ID")
 
 st.title("🏎️ Mach - F1 Race Engineer")
-st.markdown("Chat with your AI race strategist to explore optimal race strategies.")
+st.markdown("Chat with your AI race strategist and simulate stints, tyre wear, and undercuts.")
 
 # Strategy Inputs
 st.header("📋 Race Setup")
@@ -63,11 +63,24 @@ if google_api_key:
             st.success("Strategy Received")
             st.markdown(response)
 
-        # Optional: Speak response
         if eleven_api_key and voice_id:
             from elevenlabs import set_api_key, generate, play
             set_api_key(eleven_api_key)
             audio = generate(text=response, voice=voice_id)
             play(audio)
+
+    st.header("📈 Tyre Degradation & Lap Time Simulation")
+    tyre_choice = st.selectbox("Tyre for Simulation", ["Soft", "Medium", "Hard"])
+    laps = st.slider("Number of Laps", 5, 30, 15)
+    sim_df = simulate_lap_times(tyre_choice, degradation, laps)
+    st.line_chart(sim_df.set_index("Lap")["LapTime"])
+
+    st.header("🏁 Stint Visualization")
+    st.pyplot(plot_stints(driver, degradation))
+
+    st.header("🧪 Undercut Simulation")
+    st.markdown("Simulate time gained/lost by pitting earlier than a rival.")
+    undercut_result = simulate_undercut(degradation)
+    st.write(undercut_result)
 else:
     st.warning("Please enter your Google API key in the sidebar.")
